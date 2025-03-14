@@ -56,7 +56,7 @@ func (store *Store) TransferTx(ctx context.Context, arg TransferTxParams) (Trans
 	err := store.execTx(ctx, func(q *Queries) error {
 		var err error
 
-		result.Transfer, err = q.CreateTransfer(context.Background(), CreateTransferParams{
+		result.Transfer, err = q.CreateTransfer(ctx, CreateTransferParams{
 			FromAccountID: arg.FromAccountID,
 			ToAccountID:   arg.ToAccountID,
 			Amount:        arg.Amount,
@@ -87,7 +87,7 @@ func (store *Store) TransferTx(ctx context.Context, arg TransferTxParams) (Trans
 			result.ToAccount, result.FromAccount, err = addMoney(ctx, store, arg.ToAccountID, arg.Amount, arg.FromAccountID, -arg.Amount)
 		}
 
-		return nil
+		return err
 	})
 
 	return result, err
@@ -101,14 +101,14 @@ func addMoney(
 	accountID2 int64,
 	amount2 int64,
 ) (account1, account2 Accounts, err error) {
-	_, err = store.AddAcountBlance(ctx, AddAcountBlanceParams{
+	account1, err = store.AddAcountBlance(ctx, AddAcountBlanceParams{
 		ID:     accountID1,
 		Amount: amount1,
 	})
 	if err != nil {
 		return
 	}
-	_, err = store.AddAcountBlance(ctx, AddAcountBlanceParams{
+	account2, err = store.AddAcountBlance(ctx, AddAcountBlanceParams{
 		ID:     accountID2,
 		Amount: amount2,
 	})
