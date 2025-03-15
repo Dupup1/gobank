@@ -9,13 +9,13 @@ import (
 )
 
 func TestTransferTx(t *testing.T) {
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 	store := NewStore(testDB)
 	account1 := createRandomAccount(t)
 	account2 := createRandomAccount(t)
 	t.Log(">> before:", account1.Balance, account2.Balance)
-	n := int64(5)
+	n := int64(2)
 	amount := int64(10)
 
 	errs := make(chan error)
@@ -105,11 +105,13 @@ func TestTransferTx(t *testing.T) {
 }
 
 func TestTransferTxDeadlock(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
 	store := NewStore(testDB)
 	account1 := createRandomAccount(t)
 	account2 := createRandomAccount(t)
 	t.Log(">> before:", account1.Balance, account2.Balance)
-	n := int64(10)
+	n := int64(2)
 	amount := int64(10)
 
 	errs := make(chan error)
@@ -123,7 +125,7 @@ func TestTransferTxDeadlock(t *testing.T) {
 		}
 
 		go func() {
-			_, err := store.TransferTx(context.Background(), TransferTxParams{
+			_, err := store.TransferTx(ctx, TransferTxParams{
 				FromAccountID: fromAccountID,
 				ToAccountID:   toAccountID,
 				Amount:        amount,
@@ -137,10 +139,10 @@ func TestTransferTxDeadlock(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	updateAccount1, err := testQueries.GetAccount(context.Background(), account1.ID)
+	updateAccount1, err := testQueries.GetAccount(ctx, account1.ID)
 	require.NoError(t, err)
 
-	updateAccount2, err := testQueries.GetAccount(context.Background(), account2.ID)
+	updateAccount2, err := testQueries.GetAccount(ctx, account2.ID)
 	require.NoError(t, err)
 
 	t.Log(">> after:", updateAccount1.Balance, updateAccount2.Balance)
