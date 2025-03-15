@@ -3,11 +3,14 @@ package db
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 )
 
 func TestTransferTx(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
 	store := NewStore(testDB)
 	account1 := createRandomAccount(t)
 	account2 := createRandomAccount(t)
@@ -18,9 +21,9 @@ func TestTransferTx(t *testing.T) {
 	errs := make(chan error)
 	results := make(chan TransferTxResult)
 
-	for i := 0; i < int(n); i++ {
+	for range int(n) {
 		go func() {
-			result, err := store.TransferTx(context.Background(), TransferTxParams{
+			result, err := store.TransferTx(ctx, TransferTxParams{
 				FromAccountID: account1.ID,
 				ToAccountID:   account2.ID,
 				Amount:        amount,
@@ -45,7 +48,7 @@ func TestTransferTx(t *testing.T) {
 		require.NotZero(t, transfer.ID)
 		require.NotZero(t, transfer.CreatedAt)
 
-		_, err = store.GetTransfer(context.Background(), transfer.ID)
+		_, err = store.GetTransfer(ctx, transfer.ID)
 		require.NoError(t, err)
 
 		FromEntry := result.FromEntry
@@ -55,7 +58,7 @@ func TestTransferTx(t *testing.T) {
 		require.NotZero(t, FromEntry.ID)
 		require.NotZero(t, FromEntry.CreatedAt)
 
-		_, err = store.GetEntry(context.Background(), FromEntry.ID)
+		_, err = store.GetEntry(ctx, FromEntry.ID)
 		require.NoError(t, err)
 
 		ToEntry := result.ToEntry
@@ -65,7 +68,7 @@ func TestTransferTx(t *testing.T) {
 		require.NotZero(t, ToEntry.ID)
 		require.NotZero(t, ToEntry.CreatedAt)
 
-		_, err = store.GetEntry(context.Background(), ToEntry.ID)
+		_, err = store.GetEntry(ctx, ToEntry.ID)
 		require.NoError(t, err)
 
 		fromAccount := result.FromAccount
@@ -90,10 +93,10 @@ func TestTransferTx(t *testing.T) {
 		exited[k] = true
 	}
 
-	updateAccount1, err := testQueries.GetAccount(context.Background(), account1.ID)
+	updateAccount1, err := testQueries.GetAccount(ctx, account1.ID)
 	require.NoError(t, err)
 
-	updateAccount2, err := testQueries.GetAccount(context.Background(), account2.ID)
+	updateAccount2, err := testQueries.GetAccount(ctx, account2.ID)
 	require.NoError(t, err)
 
 	t.Log(">> after:", updateAccount1.Balance, updateAccount2.Balance)
