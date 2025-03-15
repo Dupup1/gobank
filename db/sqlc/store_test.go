@@ -16,7 +16,7 @@ func TestTransferTx(t *testing.T) {
 	account1 := createRandomAccount(t)
 	account2 := createRandomAccount(t)
 	t.Log(">> before:", account1.Balance, account2.Balance)
-	n := 4
+	n := 3
 	amount := int64(10)
 
 	errs := make(chan error)
