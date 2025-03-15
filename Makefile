@@ -21,6 +21,6 @@ sqlc:
 	sqlc generate
 
 test:
-	go test -v -cover ./...
+	go test -v -cover -count=1 ./...
 
 .PHONY: postgres createdb dropdb migrateup migratedown migrateforce sqlc test

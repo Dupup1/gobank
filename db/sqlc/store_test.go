@@ -18,7 +18,7 @@ func TestTransferTx(t *testing.T) {
 	errs := make(chan error)
 	results := make(chan TransferTxResult)
 
-	for range int(n) {
+	for i := 0; i < int(n); i++ {
 		go func() {
 			result, err := store.TransferTx(context.Background(), TransferTxParams{
 				FromAccountID: account1.ID,
@@ -144,4 +144,3 @@ func TestTransferTxDeadlock(t *testing.T) {
 	require.Equal(t, account1.Balance, updateAccount1.Balance)
 	require.Equal(t, account2.Balance, updateAccount2.Balance)
 }
-
