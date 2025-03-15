@@ -15,23 +15,23 @@ func TestTransferTx(t *testing.T) {
 	store := NewStore(testDB)
 	account1 := createRandomAccount(t)
 	account2 := createRandomAccount(t)
-	fmt.Println(">> before:", account1.Balance, account2.Balance)
+	t.Log(">> before:", account1.Balance, account2.Balance)
 	n := 5
 	amount := int64(10)
 
 	errs := make(chan error)
 	results := make(chan TransferTxResult)
 
-	for range int(n) {
-		go func() {
+	for i := 0; i < n; i++ {
+		go func(fromID, toID int64) {
 			result, err := store.TransferTx(ctx, TransferTxParams{
-				FromAccountID: account1.ID,
-				ToAccountID:   account2.ID,
+				FromAccountID: fromID,
+				ToAccountID:   toID,
 				Amount:        amount,
 			})
 			errs <- err
 			results <- result
-		}()
+		}(account1.ID, account2.ID)
 	}
 
 	exited := make(map[int]bool)
