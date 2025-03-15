@@ -24,6 +24,13 @@ func (store *Store) execTx(ctx context.Context, fn func(*Queries) error) error {
 	if err != nil {
 		return err
 	}
+
+	// 设置事务隔离级别
+	_, err = tx.Exec(ctx, "SET TRANSACTION ISOLATION LEVEL READ COMMITTED")
+	if err != nil {
+		return err
+	}
+
 	q := New(tx)
 	err = fn(q)
 	if err != nil {
@@ -105,16 +112,27 @@ func addMoney(
 	accountID2 int64,
 	amount2 int64,
 ) (account1, account2 Accounts, err error) {
-	account1, err = store.AddAcountBlance(ctx, AddAcountBlanceParams{
+	fmt.Printf("addMoney: 开始更新账户 %d 余额 %d\n", accountID1, amount1)
+	account1, err = store.AddAccountBalance(ctx, AddAccountBalanceParams{
 		ID:     accountID1,
 		Amount: amount1,
 	})
 	if err != nil {
+		fmt.Printf("addMoney: 更新账户 %d 失败: %v\n", accountID1, err)
 		return
 	}
-	account2, err = store.AddAcountBlance(ctx, AddAcountBlanceParams{
+
+	fmt.Printf("addMoney: 账户 %d 更新成功, 新余额: %d\n", accountID1, account1.Balance)
+    
+    fmt.Printf("addMoney: 开始更新账户 %d 余额 %d\n", accountID2, amount2)
+	account2, err = store.AddAccountBalance(ctx, AddAccountBalanceParams{
 		ID:     accountID2,
 		Amount: amount2,
 	})
-	return
+	if err != nil {
+        fmt.Printf("addMoney: 更新账户 %d 失败: %v\n", accountID2, err)
+        return
+    }
+    fmt.Printf("addMoney: 账户 %d 更新成功, 新余额: %d\n", accountID2, account2.Balance)
+    return
 }
