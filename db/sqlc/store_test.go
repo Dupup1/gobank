@@ -2,7 +2,6 @@ package db
 
 import (
 	"context"
-	"fmt"
 	"testing"
 	"time"
 
@@ -82,8 +81,6 @@ func TestTransferTx(t *testing.T) {
 		require.NotEmpty(t, toAccount)
 		require.Equal(t, account2.ID, toAccount.ID)
 
-		fmt.Println(">> tx:", fromAccount.Balance, toAccount.Balance)
-
 		diff1 := account1.Balance - fromAccount.Balance
 		diff2 := toAccount.Balance - account2.Balance
 		require.Equal(t, diff1, diff2)
@@ -103,7 +100,6 @@ func TestTransferTx(t *testing.T) {
 	updateAccount2, err := store.GetAccount(ctx, account2.ID)
 	require.NoError(t, err)
 
-	t.Log(">> after:", updateAccount1.Balance, updateAccount2.Balance)
 	require.Equal(t, account1.Balance-int64(n)*amount, updateAccount1.Balance)
 	require.Equal(t, account2.Balance+int64(n)*amount, updateAccount2.Balance)
 }

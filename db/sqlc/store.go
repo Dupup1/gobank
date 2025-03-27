@@ -7,19 +7,24 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-type Store struct {
+type Store interface {
+	Querier
+	TransferTx(ctx context.Context, arg TransferTxParams) (TransferTxResult, error)
+}
+
+type SQLStore struct {
 	*Queries
 	connPool *pgxpool.Pool
 }
 
-func NewStore(connPool *pgxpool.Pool) *Store {
-	return &Store{
+func NewStore(connPool *pgxpool.Pool) Store {
+	return &SQLStore{
 		Queries:  New(connPool),
 		connPool: connPool,
 	}
 }
 
-func (store *Store) execTx(ctx context.Context, fn func(*Queries) error) error {
+func (store *SQLStore) execTx(ctx context.Context, fn func(*Queries) error) error {
 	tx, err := store.connPool.Begin(ctx)
 	if err != nil {
 		return err
@@ -57,13 +62,11 @@ type TransferTxResult struct {
 	ToEntry     Entries   `json:"to_entry"`
 }
 
-func (store *Store) TransferTx(ctx context.Context, arg TransferTxParams) (TransferTxResult, error) {
+func (store *SQLStore) TransferTx(ctx context.Context, arg TransferTxParams) (TransferTxResult, error) {
 	var result TransferTxResult
 
 	err := store.execTx(ctx, func(q *Queries) error {
 		var err error
-		fmt.Printf("transfering %d from account %d to account %d\n",
-			arg.Amount, arg.FromAccountID, arg.ToAccountID)
 		result.Transfer, err = q.CreateTransfer(ctx, CreateTransferParams{
 			FromAccountID: arg.FromAccountID,
 			ToAccountID:   arg.ToAccountID,
@@ -72,8 +75,6 @@ func (store *Store) TransferTx(ctx context.Context, arg TransferTxParams) (Trans
 		if err != nil {
 			return err
 		}
-		fmt.Printf("entrying %d from account %d\n",
-			arg.Amount, arg.FromAccountID)
 		result.FromEntry, err = q.CreateEntry(ctx, CreateEntryParams{
 			AccountID: arg.FromAccountID,
 			Amount:    -arg.Amount,
@@ -81,8 +82,6 @@ func (store *Store) TransferTx(ctx context.Context, arg TransferTxParams) (Trans
 		if err != nil {
 			return err
 		}
-		fmt.Printf("entrying %d to account %d\n",
-			arg.Amount, arg.ToAccountID)
 		result.ToEntry, err = q.CreateEntry(ctx, CreateEntryParams{
 			AccountID: arg.ToAccountID,
 			Amount:    arg.Amount,
@@ -90,8 +89,6 @@ func (store *Store) TransferTx(ctx context.Context, arg TransferTxParams) (Trans
 		if err != nil {
 			return err
 		}
-		fmt.Printf("adding %d to account %d and subtracting %d from account %d\n",
-			arg.Amount, arg.ToAccountID, arg.Amount, arg.FromAccountID)
 		if arg.FromAccountID < arg.ToAccountID {
 			result.FromAccount, result.ToAccount, err = addMoney(ctx, q, arg.FromAccountID, -arg.Amount, arg.ToAccountID, arg.Amount)
 		} else {
@@ -112,27 +109,18 @@ func addMoney(
 	accountID2 int64,
 	amount2 int64,
 ) (account1, account2 Accounts, err error) {
-	fmt.Printf("addMoney: 开始更新账户 %d 余额 %d\n", accountID1, amount1)
 	account1, err = q.AddAccountBalance(ctx, AddAccountBalanceParams{
 		ID:     accountID1,
 		Amount: amount1,
 	})
 	if err != nil {
-		fmt.Printf("addMoney: 更新账户 %d 失败: %v\n", accountID1, err)
 		return
 	}
 
-	fmt.Printf("addMoney: 账户 %d 更新成功, 新余额: %d\n", accountID1, account1.Balance)
-    
-    fmt.Printf("addMoney: 开始更新账户 %d 余额 %d\n", accountID2, amount2)
 	account2, err = q.AddAccountBalance(ctx, AddAccountBalanceParams{
 		ID:     accountID2,
 		Amount: amount2,
 	})
-	if err != nil {
-        fmt.Printf("addMoney: 更新账户 %d 失败: %v\n", accountID2, err)
-        return
-    }
-    fmt.Printf("addMoney: 账户 %d 更新成功, 新余额: %d\n", accountID2, account2.Balance)
+	
     return
 }
